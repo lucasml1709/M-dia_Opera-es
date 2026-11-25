@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dashboard de Frota – Km e Consumo por Operação</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head><body><main>
+<div class="top"><div><h1>Relação de Km rodado e média por operação</h1><p class="sub" style="margin:0">Periodo Geral</p></div><div class="logos"><img src="assets/jolivan.png" alt="Jolivan" height="40"><i></i><img src="assets/gobrax.png" alt="Gobrax" height="44"></div></div>
+<div class="chips" id="chips"></div>
+<div class="kpis" id="kpis"></div>
+<div class="row">
+ <div class="card"><h2>Km somado por mês</h2><p class="hint">Clique na coluna de Carga Seca em Out para ver os implementos</p><div class="box"><canvas id="km"></canvas></div></div>
+ <div class="card"><h2>Média (km/l) por mês</h2><div class="box"><canvas id="med"></canvas></div></div>
+</div>
+<div class="card" id="det"></div>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="data/dados.js"></script>
+<script src="js/app.js"></script>
+</body></html>
