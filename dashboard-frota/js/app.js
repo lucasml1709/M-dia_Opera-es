@@ -1,7 +1,7 @@
-IMPL.sort((a,b)=>b.k-a.k);
 const nf=new Intl.NumberFormat('pt-BR'),n2=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const M=D.meses,L=M.length-1,sum=a=>a.reduce((s,v)=>s+(v||0),0);
+const IMPLS=Array.isArray(IMPL)?{[M[L]]:IMPL}:IMPL;let detI=L;
 const views=['Geral',...D.ops,'Comparar todas'];let sel='Geral';
 const idx=o=>D.ops.indexOf(o);
 const lbl={id:'lbl',afterDatasetsDraw(ch){const c=ch.ctx;ch.data.datasets.forEach((ds,i)=>{if(!ds.showLbl)return;ch.getDatasetMeta(i).data.forEach((p,j)=>{const v=ds.data[j];if(v==null)return;c.save();c.font='600 12px Barlow,sans-serif';c.fillStyle=ds.borderColor;c.textAlign='center';c.fillText(n2.format(v),p.x,p.y+(ds.lblBelow?18:-9));c.restore();});});}};
@@ -16,15 +16,26 @@ function rows(){
  out.push({n:GRP_NAME,m:k/lit,k:k,grp:mem});
  return out.sort((x,y)=>y.k-x.k);
 }
-function showDet(){
+function showDet(i){
+ if(i!=null)detI=i;
+ const mes=M[detI],data=IMPLS[mes]||[];
  const d=document.getElementById('det');
+ const pick=`<select id="fm" aria-label="Mês" style="border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:4px 8px;font:500 13px Barlow,sans-serif">${M.map((m,j)=>`<option value="${j}"${j===detI?' selected':''}>${m}</option>`).join('')}</select>`;
  const st=r=>`<tr class="g"><td>${r.t}</td><td>${nf.format(Math.round(r.k))}</td><td>${n2.format(r.m)}</td><td></td></tr>`;
  const sumOf=(a,t)=>{const k=a.reduce((s,r)=>s+r.k,0),l=a.reduce((s,r)=>s+r.k/r.m,0);return{t,k,m:k/l,n:a.length}};
  const line=(r,mx,cor)=>`<tr><td>${r.n}</td><td>${nf.format(Math.round(r.k))}</td><td>${n2.format(r.m)}</td><td class="bar"><i style="width:${r.k/mx*100}%${cor?';background:'+cor:''}"></i></td></tr>`;
  const head='<div class="tw" style="margin-top:10px"><table><thead><tr><th>Implemento</th><th>Km rodado</th><th>Média (km/l)</th><th></th></tr></thead><tbody>';
- const btn=`<div style="display:flex;gap:8px;flex-wrap:wrap"><button id="fj" aria-pressed="${juntar}" style="${juntar?'background:var(--ink);color:var(--bg);border-color:var(--ink)':''}">${juntar?'✓ ':''}Segmentar Rodotrem/Bitrem</button><button id="fx">Fechar</button></div>`;
- const title=`<h2>Carga Seca – ${M[L]}: detalhe por implemento</h2>`;
- const ord=IMPL.slice().sort((x,y)=>y.k-x.k),mx=Math.max(...ord.map(r=>r.k));
+ const btn=`<div style="display:flex;gap:8px;flex-wrap:wrap">${pick}<button id="fj" aria-pressed="${juntar}" style="${juntar?'background:var(--ink);color:var(--bg);border-color:var(--ink)':''}">${juntar?'✓ ':''}Segmentar Rodotrem/Bitrem</button><button id="fx">Fechar</button></div>`;
+ const title=`<h2>Carga Seca – ${mes}: detalhe por implemento</h2>`;
+ const ord=data.slice().sort((x,y)=>y.k-x.k),mx=Math.max(...ord.map(r=>r.k));
+ if(!ord.length){
+  d.innerHTML=`<div class="hd2"><div>${title}<p class="hint">Sem detalhamento cadastrado para ${mes}. Preencha a aba "implementos" da planilha.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">${pick}<button id="fx">Fechar</button></div></div>`;
+  d.classList.add('on');
+  document.getElementById('fx').onclick=()=>d.classList.remove('on');
+  document.getElementById('fm').onchange=ev=>showDet(+ev.target.value);
+  d.scrollIntoView({behavior:'smooth',block:'nearest'});
+  return;
+ }
  if(!juntar){
   const T=sumOf(ord,'Total');
   d.innerHTML=`<div class="hd2"><div>${title}<p class="hint">${nf.format(Math.round(T.k))} km · média ${n2.format(T.m)} km/l · ${ord.length} implementos</p></div>${btn}</div>${head}${ord.map(r=>line(r,mx)).join('')}${st(T)}</tbody></table></div>`;
@@ -43,10 +54,11 @@ function showDet(){
  }
  d.classList.add('on');
  document.getElementById('fx').onclick=()=>d.classList.remove('on');
+ document.getElementById('fm').onchange=ev=>showDet(+ev.target.value);
  document.getElementById('fj').onclick=()=>{juntar=!juntar;showDet();};
  d.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
-const isCS=(ch,e)=>{const h=ch.getElementsAtEventForMode(e,'nearest',{intersect:true},false)[0];return h&&ch.data.datasets[h.datasetIndex].label==='Carga Seca'&&h.index===L};
+const csIdx=(ch,e)=>{const h=ch.getElementsAtEventForMode(e,'nearest',{intersect:true},false)[0];return h&&ch.data.datasets[h.datasetIndex].label==='Carga Seca'?h.index:-1};
 function kpis(){
  const o=D.km[sel]?sel:'Geral',km=D.km[o],md=D.med[o];
  const lit=sum(km.map((k,j)=>k?k/md[j]:0));
@@ -61,7 +73,7 @@ function render(){
  const stackOps=all?D.ops:[sel];
  const base={responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom'}}};
  new Chart('km',{type:'bar',data:{labels:M,datasets:stackOps.map(o=>({label:o,data:D.km[o],backgroundColor:css('--c'+idx(o)),stack:'a'}))},
-  options:{...base,onClick:(e,a,ch)=>{if(isCS(ch,e.native))showDet();},onHover:(e,a,ch)=>{e.native.target.style.cursor=isCS(ch,e.native)?'pointer':'default';},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>nf.format(v)}}},
+  options:{...base,onClick:(e,a,ch)=>{const i=csIdx(ch,e.native);if(i>=0)showDet(i);},onHover:(e,a,ch)=>{e.native.target.style.cursor=csIdx(ch,e.native)>=0?'pointer':'default';},scales:{x:{stacked:true},y:{stacked:true,ticks:{callback:v=>nf.format(v)}}},
   plugins:{legend:{display:stackOps.length>1,position:'bottom'},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${nf.format(c.parsed.y||0)} km`}}}}});
  const lines=(sel==='Geral'||sel==='Comparar todas')?[{label:'Geral',o:'Geral',c:css('--geral'),w:4}]:[];
  if(sel==='Comparar todas')D.ops.forEach(o=>lines.push({label:o,o,c:css('--c'+idx(o)),w:2}));
